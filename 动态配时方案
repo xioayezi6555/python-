@@ -1,12 +1,4 @@
-#文 件 名:plan_time_calculater.py
-#创 建 人:杨晓叶
-#创建时间:2019.10.14
 #功能描述:根据给定的阶段数,生成方案数量和周期时长,用KMeans聚类法实现均匀分配时长,生成方案列表与对应的权重
-#修 改 人:苏笑
-#修改时间:2019.10.17
-#版    本:1.0.0
-#版    权:witcomm
-
 import numpy as np
 from sklearn.cluster import KMeans
 
