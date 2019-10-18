@@ -1,0 +1,107 @@
+#文 件 名:plan_time_calculater.py
+#创 建 人:杨晓叶
+#创建时间:2019.10.14
+#功能描述:根据给定的阶段数,生成方案数量和周期时长,用KMeans聚类法实现均匀分配时长,生成方案列表与对应的权重
+#修 改 人:苏笑
+#修改时间:2019.10.17
+#版    本:1.0.0
+#版    权:witcomm
+
+import numpy as np
+from sklearn.cluster import KMeans
+
+#对得到的离散点进行去重处理
+def filter_points(points_result):
+    result = []
+    for point in points_result:
+        if point not in result:
+            if round(sum(point)) != 1:
+                print('数据错误，停止计算')
+                raise KeyboardInterrupt
+            result.append(point)
+    return result
+
+#创建数据，传入维数和间隔
+def create_data(axis, interval):
+    # 主要是对x，y取排列组合
+    def xy_possibility(sum, interval):
+        x = interval
+        xy_result = []
+        while x < sum:
+            xy_result.append((round(x, 2), round(sum-x, 2)))
+            x += interval
+        return xy_result
+
+    points_result=[]
+    expression = np.zeros(axis)#生成axis纬矩阵形式
+    for index_x in range(len(expression)):#对定义的表达式expression进行遍历，index_x表示索引号，x表示索引位置的数据
+        expression_1 = expression[index_x+1:]#expression_1表示表达式生成expression的index_x+1位置一直到最后的数据，数据类型同expression
+        for index_y in range(len(expression_1)):#对expression_1进行遍历，index_y表示索引号，y表示索引位置的数据
+            cycle_times = int(1 // ((len(expression) - 2) * interval)) if len(expression) != 2 else 1#if后面成立后才会执行if前面的。否则执行else
+            for num in range(1, cycle_times+1):#num的循环次数为从1到cycle_times+1
+                else_param = interval * num#从step中选择2个后，其余step每次循环后增加间隔后得到的数值
+                sum = 1- (else_param * (len(expression) - 2))#除了x,y以后的其余所有元素的总和
+                xy_result = xy_possibility(sum, interval)
+                for x_and_y in xy_result:
+                    point = [round(else_param,2) for i in range(len(expression))]#列表推导式：即把每次循环的数都赋值为for前面的量
+                    point[index_x] = x_and_y[0]
+                    point[(index_y + index_x + 1)] = x_and_y[1]
+                    points_result.append(point)
+
+    points_result = filter_points(points_result)
+    return points_result
+
+#KMeans聚类
+def data_cluster(data, n_clusters):
+    estimator = KMeans(n_clusters)  # 构造聚类器
+    estimator.fit(data)  # 聚类，因为已经给n_clusters赋值
+    labels = estimator.labels_  # 获取聚类标签
+    labels = np.array(labels).reshape(1, -1)#转换成1行
+    return labels
+
+#取中心
+def get_weights(data,n_clusters,axis):
+    labels = data_cluster(data, n_clusters)#转换成1行
+
+    result = []
+    index_list = np.array([i for i in range(len(data))]).reshape(1, -1)
+    for label in range(n_clusters):#循环类数
+        index_list_ = index_list[labels == label]
+        cluster_result = []
+        for index in index_list_:
+            cluster_result.append(data[index])
+        cluster_result = np.array(cluster_result).reshape(-1, axis)#reshape(-1,n)即转换成n列
+
+        points=[]
+        for index in range(axis):
+            point = cluster_result[:, index].reshape(1, -1)
+            point_handle = round(np.mean(point), 3)
+            points.append(point_handle)
+        result.append((points))
+
+    result.sort()
+    return result
+
+#根据周期时长计算方案时长
+def get_plan(weights, cycle_time):
+    result = []
+    for weight in weights:
+        plan = [round(cycle_time*i) for i in weight]
+        print('配时方案:', plan, '  对应权重:', weight, '  周期时长:', sum(plan))#打印计算结果
+        result.append(plan)
+    return result
+
+#主函传入  阶段数(数组维数), 生成方案数(分类数), 周期时长, 离散间隔
+def calculate(steps, n_clusters, cycle_time=100, interval=0.05):
+    data = create_data(steps, interval)
+    weights = get_weights(data,n_clusters,steps)
+    plan_list = get_plan(weights, cycle_time)
+    return plan_list, weights
+
+
+if __name__ == '__main__':
+    from time import time
+    start = time()
+    plan_list, weights = calculate(3, 16, 100)
+    end = time()
+    print('计算耗时:', round(end-start,3),"秒")
