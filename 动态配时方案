@@ -97,3 +97,4 @@ if __name__ == '__main__':
     plan_list, weights = calculate(3, 16, 100)
     end = time()
     print('计算耗时:', round(end-start,3),"秒")
+    
